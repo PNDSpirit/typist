@@ -29,7 +29,6 @@ class Typist:
                 self._press_a_key(char)
                 self._make_a_mistake(char)
 
-
     def _make_a_mistake(self, char):
         pool_size = 10000
         chance = (100 - self.accuracy) / 100
@@ -53,7 +52,7 @@ class Typist:
             "(": "9",
             ")": "0",
             ":": ";",
-            "\"": "'",
+            '"': "'",
             "{": "[",
             "}": "]",
             "+": "=",
@@ -63,7 +62,7 @@ class Typist:
             "?": "/",
             "~": "`",
         }
-        
+
         if len(letter) is 1:
             if letter.isupper():
                 letter = "shift+" + letter.lower()
@@ -102,4 +101,4 @@ class Typist:
 if __name__ == "__main__":
     time.sleep(1)
     typist = Typist()
-    typist.insert_characters("hi")
+    typist.insert_characters("""We just don't recognize life's most significant moments while they're happening. Back then I thought, "Well, there'll be other days." I didn't realize that was the only day.""")
