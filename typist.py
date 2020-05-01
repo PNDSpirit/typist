@@ -74,7 +74,6 @@ class Typist:
     def _press_a_key(self, letter):
         letter = self.get_letter_in_good_form(letter)
         keyboard.send(letter)
-        time.sleep(self._get_sleep_time())
 
     def _get_sleep_time(self, char=None):
         roll = random.randint(-100, 100) / 100
@@ -100,5 +99,5 @@ class Typist:
 
 if __name__ == "__main__":
     time.sleep(1)
-    typist = Typist()
+    typist = Typist(100, 100, 0)
     typist.insert_characters("""We just don't recognize life's most significant moments while they're happening. Back then I thought, "Well, there'll be other days." I didn't realize that was the only day.""")
