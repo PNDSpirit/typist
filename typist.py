@@ -71,6 +71,7 @@ class Typist:
         shifted = False
         if letter[0:6] == "shift+":
             letter = letter[6:]
+            shifted = True
 
         # find a neighbouring letter
         for row in rows:
