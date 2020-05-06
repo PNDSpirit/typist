@@ -55,9 +55,15 @@ class Typist:
                 break
         return counter
 
+    def _write_a_few_more_letters_and_delete_them(self, characters_pointer, mistake_length):
+        letters_written = self._write_a_few_more_letters(characters_pointer + mistake_length)
+        time.sleep(self._get_sleep_time() + 0.1)
+        for _ in range(letters_written + mistake_length):
+            self._press_a_key("backspace")
+
     def _get_mistake_type(self):
-        mistakes_percent_chance = {1: 85, 2: 10, 3: 5}
-        # mistakes_percent_chance = {1: 0, 2: 0, 3: 100}
+        mistakes_percent_chance = {1: 80, 2: 10, 3: 10}
+        # mistakes_percent_chance = {1: 0, 2: 100, 3: 0}
         roll = random.randint(1, 100)
         comparator = 0
         for key in mistakes_percent_chance:
@@ -110,18 +116,12 @@ class Typist:
                         return
                     self._press_a_key(second_char)
                     self._press_a_key(first_char)
-                    letters_written = self._write_a_few_more_letters(self.characters_pointer + 2)
-                    time.sleep(self._get_sleep_time() + 0.1)
-                    for _ in range(letters_written + 2):
-                        self._press_a_key("backspace")
+                    self._write_a_few_more_letters_and_delete_them(self.characters_pointer + 2, 2)
 
                 if mistake_type == 2:
                     second_char = self.characters[self.characters_pointer + 1]
                     self._press_a_key(second_char)
-                    letters_written = self._write_a_few_more_letters(self.characters_pointer + 2)
-                    time.sleep(self._get_sleep_time() + 0.1)
-                    for _ in range(letters_written + 1):
-                        self._press_a_key("backspace")
+                    self._write_a_few_more_letters_and_delete_them(self.characters_pointer + 1, 1)
 
                 if mistake_type == 3:
                     first_char = self.characters[self.characters_pointer]
@@ -129,12 +129,9 @@ class Typist:
                     if additional_char is None:
                         return
                     self._press_a_key(first_char)
-                    self._press_a_key(additional_char)
-                    letters_written = self._write_a_few_more_letters(self.characters_pointer + 1)
-                    time.sleep(self._get_sleep_time())
-                    for _ in range(letters_written + 1):
-                        self._press_a_key("backspace")
                     self.characters_pointer += 1
+                    self._press_a_key(additional_char)
+                    self._write_a_few_more_letters_and_delete_them(self.characters_pointer, 1)
 
     def _get_letter_in_good_form(self, letter):
         shifted_keys = {
@@ -160,7 +157,7 @@ class Typist:
             "~": "`",
         }
 
-        if len(letter) is 1:
+        if len(letter) == 1:
             if letter.isupper():
                 letter = "shift+" + letter.lower()
             if letter in shifted_keys.keys():
@@ -171,7 +168,7 @@ class Typist:
     def _press_a_key(self, letter, sleep_time=None):
         letter = self._get_letter_in_good_form(letter)
 
-        if sleep_time is None:
+        if sleep_time == None:
             sleep_time = self._get_sleep_time()
         if letter[0:6] == "shift+":
             sleep_time *= 1.7
@@ -190,7 +187,7 @@ class Typist:
 
     def _get_error_letter(self, char):
         if char.isalnum():
-            if len(char) is 1:
+            if len(char) == 1:
                 return "shift+" + char
             else:
                 return char[-1]
@@ -207,9 +204,13 @@ class Typist:
 
 if __name__ == "__main__":
     time.sleep(1)
-    typist = Typist(1500, 96.3, 1.5)
+    typist = Typist(150, 93.3, 1.5)
 
-    for x in range(100):
+    for x in range(1):
         typist.insert_characters(
             """Size matters not. Look at me. Judge me by my size, do you? Hmm? Hmm. And well you should not. For my ally is the Force, and a powerful ally it is. Life creates it, makes it grow. Its energy surrounds us and binds us. Luminous beings are we, not this crude matter. You must feel the Force; around you; here, between you, me, the tree, the rock, everywhere, yes. Even between the land and the ship."""
+            # """Testing!"""
         )
+
+    exit(0)
+

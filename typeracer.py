@@ -45,7 +45,6 @@ def image_ocr_captcha(img_path):
         img,
         config='-c tessedit_char_whitelist=" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz,."',
     ).replace("\n", " ")
-    print(text)
     return text
 
 
@@ -83,20 +82,19 @@ def get_race_textbox():
     res = cv2.matchTemplate(img_rgb, dotted_line, cv2.TM_CCOEFF_NORMED)
     threshold = .8
     loc = np.where(res >= threshold)
-    search_height = 768
+    search_height = 0
     for pt in zip(*loc[::-1]):  # Switch columns and rows
         search_height = pt[1]
     
+
     top_left = (config.box_width_left, search_height + 20 + bbox[1])
 
     res = cv2.matchTemplate(img_rgb, change_dispay_format_text, cv2.TM_CCOEFF_NORMED)
     threshold = .8
     loc = np.where(res >= threshold)
-    search_height = 1366
+    search_height = 1000
     for pt in zip(*loc[::-1]):  # Switch columns and rows
-        print("Found an occurance", pt[1])
         search_height = pt[1]
-    print(search_height)    
 
     bottom_right = (config.box_width_right, search_height + 5 + bbox[1])
     bounding_box = (top_left[0], top_left[1], bottom_right[0], bottom_right[1])
@@ -108,7 +106,7 @@ def get_race_textbox():
     return img, bounding_box
 
 def check_for_yellow_light():
-    bbox_dimensions = (640, 240, 965, 400)
+    bbox_dimensions = config.yellow_light_position
     img = pyscreenshot.grab(bbox=bbox_dimensions, backend='pygdk3')
     img.save("/tmp/yellow_light_full_screen.png")
     found_a_yellow_light = False
@@ -133,9 +131,8 @@ def wait_for_text_to_be_written(seconds, poll_coords):
         box = (poll_coords[0], poll_coords[1], poll_coords[0] + 1, poll_coords[1] + 1)
         img = pyscreenshot.grab(bbox=box, backend='pygdk3')
         if img.getpixel((0,0)) != (250, 250, 250):
-            if typos_counter >= 15:
+            if typos_counter >= 12:
                 return True
-            print("TYPO DETECTED", typos_counter)
             mouse.move(poll_coords[0], poll_coords[1])
             typos_counter += 1
         else:
@@ -161,7 +158,7 @@ def enter_race():
     mouse.move(200, 600)
 
 def search_for_yellow_light():
-    max_attempts = 54
+    max_attempts = 60
     for _ in range(max_attempts):
         if check_for_yellow_light():
             return True
@@ -169,17 +166,33 @@ def search_for_yellow_light():
 
 def get_typing_content():
     img, bounding_box = get_race_textbox()
-    text = image_ocr_race(img).replace("ﬁ", "I").replace("ﬂ", "I").replace("M/", "W").replace(" [ ", " I ").replace(" ] ", " I ").replace(" 1 ", " I ")
-    if text[0] == "1":
-        text = "I" + text[1:]
+    text = image_ocr_race(img).replace("ﬁ", "I").replace("ﬂ", "I").replace("M/", "W").replace(" [ ", " I ").replace(" ] ", " I ").replace(" 1 ", " I ").replace(" ! ", " I ")
+    if len(text) != 0:
+        if text[0] == "1" or text[0] == "i" or text[0] == "l":
+            text = "I" + text[1:]
     return text, bounding_box
+
+def find_text_continuation(premature_text, text, index):
+    if len(premature_text) < index:
+        index = len(premature_text)
+    word_length = 5
+    sought_chunk = premature_text[index:index + word_length]
+    for x in range(-3, 4):
+        # find the common point between the texts
+        if text[x + index: x + index + word_length] == sought_chunk:
+            return text[x + index:]
+    return text # couldn't merge - fallback behaviour
+
 
 def race_bot():
     # wait for the user to open the typeracer website
     time.sleep(3)
 
+    successful_types = 0
+    unsuccessful_types = 0
+
     while True:
-        open_website("https://play.typeracer.com/")
+        open_website("https://typeracer.com/")
         time.sleep(5) # wait for it to load
 
         enter_race()
@@ -188,33 +201,41 @@ def race_bot():
             continue
         # premature quote grab
         premature_text, _ = get_typing_content()
-        print("Premature text: " + premature_text)
         typist = Typist(config.wpm, config.accuracy, config.error_deviation)
         time.sleep(3.4)
         typist.insert_characters(premature_text[0:25])
         time.sleep(0.5)
         # take a screenshot and save it
         text, bounding_box = get_typing_content()
-        print("Final text: " + text)
-        typist.insert_characters(text[25:])
+        text_continuation = find_text_continuation(premature_text, text, 25)
+        typist.insert_characters(text_continuation)
+        text = premature_text[0:25] + text_continuation
         textbox_location = (config.mouse_width_typebox, bounding_box[3] + config.mouse_offset_of_change_display_typebox)
-        print(textbox_location)
         while not typist.is_finished():
-            typo_flag = wait_for_text_to_be_written(5, textbox_location)
+            typo_flag = wait_for_text_to_be_written(3, textbox_location)
+            if typist.is_finished():
+                typo_flag = False
+                break
             if typo_flag:
                 break
         typist.stop_typing()
 
-        append = "correct"
         if typo_flag:
             append = "typo"
+            unsuccessful_types += 1
+        else:
+            append = "correct"
+            successful_types += 1
+
         with open("quotes_log_" + append + ".txt", 'a') as f:
             f.write(text + "\n")
 
         time.sleep(0.3)
+        print("Sucessful: {} | Unsuccessful: {}".format(successful_types, unsuccessful_types))
         
 
 if __name__ == "__main__":
     keyboard.send(0)
     mouse.wait(target_types=(mouse.DOWN))
+    # print(mouse.get_position())
     race_bot()
